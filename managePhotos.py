@@ -55,7 +55,7 @@ def saveFile(file):
 
   # Prepare the target path
   if (type(date) == datetime.datetime):
-    targetPath += f'/{date.year}/{date.year}.{date.month}/{date.year}.{date.month}.{date.day}'
+    targetPath += f'/{date.year}/{date.month}.{date.year}/{date.day}.{date.month}.{date.year}'
   else:
     targetPath += '/others'
 
