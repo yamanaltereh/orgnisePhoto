@@ -8,10 +8,10 @@ import shutil
 # logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 logging.basicConfig(level=logging.DEBUG)
 
-SOURCE_FOLDER_PATH = './SourcePhotos'
-TARGET_FOLDER_PATH = './TargetPhotos'
-OTHER_FOLDER_NAME = '/others'
-REJECTED_EXTENSIONS_FOLDER_NAME = '/rejectedExtensions '
+SOURCE_FOLDER_PATH = './data/SourcePhotos'
+TARGET_FOLDER_PATH = './data/TargetPhotos'
+OTHER_FOLDER_NAME = './data/others'
+REJECTED_EXTENSIONS_FOLDER_NAME = './data/rejectedExtensions'
 
 # def delete_file(file_name):
 #   if os.path.exists(f'./images/{file_name}'):
@@ -19,17 +19,28 @@ REJECTED_EXTENSIONS_FOLDER_NAME = '/rejectedExtensions '
 #   else:
 #     print(f'The file with name {file_name} does not exist')
 
+def convert_arabic_numerals(text):
+  """Converts Eastern Arabic numerals in a string to Western Arabic numerals."""
+  mapping = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
+  return text.translate(mapping)
+
 def extractDate(file_name):
   try:
-  # ex: 'IMG_20191021_172027.jpg' => '20191021'
-  # ex: '20191021_172027.jpg' => '20191021'
-  # ex: 'VID_20210523_102919.mp4' => '20210523'
-  # match = re.search(r'[_|-]?(.*?)[_|-]', file_name)
-    match = re.search(r'[2016|2017|2018|2019|2020|2021]([0-9]){7}', file_name)
+    # ex: 'IMG_20191021_172027.jpg' => '20191021'
+    # ex: '20191021_172027.jpg' => '20191021'
+    # ex: 'VID_20210523_102919.mp4' => '20210523'
+    # ex: 'IMG_٢٠٢٢١٢٠١_٢٢٠٠٠٤.jpg' => '20221201'
+
+    # Convert Arabic numerals to Western numerals
+    normalized_file_name = convert_arabic_numerals(file_name)
+
+    # Regex to find a date in YYYYMMDD format
+    match = re.search(r'(20[0-2][0-9])(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])', normalized_file_name)
     if match:
-      date = datetime.datetime.strptime(match.group(0), '%Y%m%d')
-      if (date.year < 1991 or date.year > int(datetime.date.today().strftime("%Y"))):
-        raise 'year is invalid'
+      date_str = match.group(0)
+      date = datetime.datetime.strptime(date_str, '%Y%m%d')
+      if date.year > datetime.date.today().year:
+        raise ValueError(f'Year {date.year} is in the future.')
       return date
     else:
       return '<Error>'
