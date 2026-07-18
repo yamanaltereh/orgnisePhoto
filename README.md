@@ -92,3 +92,27 @@ Paths are defined as constants at the top of each script:
 | `TARGET_FOLDER_PATH` | `./data/TargetPhotos` | Output organised folder |
 | `OTHER_FOLDER_NAME` | `./data/others` | Files with no recognisable date |
 | `REJECTED_EXTENSIONS_FOLDER_NAME` | `./data/rejectedExtensions` | Files with unsupported extensions |
+
+### Files merging commands
+
+```bash
+rsync -rvnc --delete "/Volumes/External_A/Folder/" "/Volumes/External_B/Folder/“
+```
+
+
+```
+#!/bin/bash
+
+# Define paths
+SOURCE="/Volumes/External_A/Specific_Folder/"
+TARGET="/Volumes/External_B/Specific_Folder/"
+LOG_FILE="$HOME/Desktop/drive_diff_log.txt"
+
+echo "Comparing drives... logging differences to $LOG_FILE"
+
+# Run rsync dry-run and filter for itemized changes
+# The -i flag provides a code for WHY it's different (e.g., >f++++++++ is a new file)
+rsync -ani --dry-run "$SOURCE" "$TARGET" > "$LOG_FILE"
+
+echo "Done. Open $LOG_FILE to see the results."
+```
