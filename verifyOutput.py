@@ -25,6 +25,14 @@ def scan_files(basepath):
     return results
 
 
+def build_size_map(files):
+    """Map filename -> total size (summing any duplicate names)."""
+    size_map = {}
+    for name, size in files:
+        size_map[name] = size_map.get(name, 0) + size
+    return size_map
+
+
 def format_size(size_bytes):
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size_bytes < 1024:
@@ -107,18 +115,56 @@ def main():
     ]
     print_table(check_rows, ['Check', 'Result', 'Detail'])
 
-    # --- List missing files if any ---
-    if missing_in_output:
-        print(f'\nMissing files ({len(missing_in_output)}):')
-        for name in sorted(missing_in_output):
-            print(f'  - {name}')
+    # --- Re-scan on failure to pinpoint the differing files ---
+    size_diffs = []
+    if not count_match or not size_match or missing_in_output:
+        print('\nDiscrepancy detected — running a second scan to pinpoint the differing files...')
+
+        source_files_2 = scan_files(SOURCE_FOLDER_PATH)
+        output_files_2 = []
+        for folder in OUTPUT_FOLDERS:
+            output_files_2.extend(scan_files(folder))
+
+        source_size_map = build_size_map(source_files_2)
+        output_size_map = build_size_map(output_files_2)
+
+        missing = sorted(set(source_size_map) - set(output_size_map))
+        size_diffs = sorted(
+            name for name in set(source_size_map) & set(output_size_map)
+            if source_size_map[name] != output_size_map[name]
+        )
+
+        if missing:
+            print(f'\nFiles missing from output ({len(missing)}):')
+            print_table(
+                [(name, format_size(source_size_map[name])) for name in missing],
+                ['Missing file', 'Source size'],
+            )
+
+        if size_diffs:
+            print(f'\nFiles present but with different sizes ({len(size_diffs)}):')
+            print_table(
+                [
+                    (
+                        name,
+                        format_size(source_size_map[name]),
+                        format_size(output_size_map[name]),
+                    )
+                    for name in size_diffs
+                ],
+                ['File', 'Source size', 'Output size'],
+            )
+
+        if not missing and not size_diffs:
+            print('\nSecond scan found no per-file differences '
+                  '(discrepancy may be from extra output files or duplicate names).')
 
     if extra_in_output:
         print(f'\nExtra files in output not found in source ({len(extra_in_output)}):')
         for name in sorted(extra_in_output):
             print(f'  - {name}')
 
-    overall = count_match and size_match and not missing_in_output
+    overall = count_match and size_match and not missing_in_output and not size_diffs
     print(f'\nOverall: {"ALL CHECKS PASSED" if overall else "VERIFICATION FAILED"}')
 
     return 0 if overall else 1
